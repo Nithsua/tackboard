@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS messages (
+    id UUID PRIMARY KEY,
+    content VARCHAR(1000) NOT NULL,
+    published_at TIMESTAMP NOT NULL
+);
