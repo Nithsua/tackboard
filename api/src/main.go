@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -25,7 +26,7 @@ func setupPostgres() (*sql.DB, error) {
 	return sql.Open("postgres", dbInfo)
 }
 
-// Message holds the structure of the you confluence
+// Message holds the structure of the you tack
 type Message struct {
 	Id          string    `json:"id"`
 	Content     string    `json:"content"`
@@ -34,8 +35,7 @@ type Message struct {
 
 func errorCheck(err error) {
 	if err != nil {
-		fmt.Println(err)
-		panic(err)
+		fmt.Println("Error: " + err.Error())
 	}
 }
 
@@ -58,6 +58,39 @@ func getAllMessages() []Message {
 	return messages
 }
 
+func insertNewMessage(message Message) (err error) {
+	db, err := setupPostgres()
+	if err != nil {
+		errorCheck(err)
+		return
+	}
+	defer db.Close()
+
+	db.QueryRow("INSERT INTO messages VALUES ($1, $2, $3)", message.Id, message.Content, message.PublishedAt)
+	return
+}
+
+func createTack(w http.ResponseWriter, request *http.Request) {
+	fmt.Println("New Tack")
+	message := Message{}
+
+	w.Header().Set("content-type", "application/json")
+	
+	err := json.NewDecoder(request.Body).Decode(&message)
+	errorCheck(err)
+
+	if err == nil {
+		fmt.Println(message)
+		message.Id = string(uuid.New().String())
+		message.PublishedAt = time.Now()
+		err = insertNewMessage(message)
+		errorCheck(err)
+		json.NewEncoder(w).Encode(map[string]string{"status": "Tack Published"})
+	} else {
+		json.NewEncoder(w).Encode(map[string]string{"status": "Something Went Wrong"})
+	}
+}
+
 func homeHandler(w http.ResponseWriter, request *http.Request) {
 	fmt.Println("Home Handler")
 	messages := getAllMessages()
@@ -68,6 +101,7 @@ func homeHandler(w http.ResponseWriter, request *http.Request) {
 func main() {
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/api/home", homeHandler).Methods("GET")
+	router.HandleFunc("/api/create", createTack).Methods("POST")
 	fmt.Println("Listening on localhost:8081")
 	log.Fatal(http.ListenAndServe(":8081", router))
 }
