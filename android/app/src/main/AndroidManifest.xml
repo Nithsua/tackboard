@@ -1,7 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.tackboard">
+   <uses-permission android:name="android.permission.INTERNET"/>
    <application
-        android:label="tackboard"
+        android:label="Tackboard"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
